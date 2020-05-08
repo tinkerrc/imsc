@@ -5,6 +5,7 @@
 #include <map>
 #include <ctime>
 #include <fstream>
+#include <iostream>
 
 #include <curlpp/Easy.hpp>
 #include <curlpp/cURLpp.hpp>
@@ -12,13 +13,22 @@
 
 #include "file.h"
 #include "checklist.h"
-#include "config.h"
+#include "config.h" // SECRET...
+#include "client.h"
 
 using std::string;
 using std::ifstream;
 using std::ofstream;
 using std::map;
 
+class UnallowedActionError : public std::runtime_error {
+    public:
+        UnallowedActionError(const string& s)
+            : std::runtime_error(s) {}
+};
+
+// the scoring engine
+// the Checklist class actually scores
 class ScoringManager {
 
     public:
@@ -31,15 +41,15 @@ class ScoringManager {
         };
 
         ScoringManager() {
-            // obtain secret from server (prospective)
-            if (!get_secret())
-                throw std::runtime_error("ScoringManager(): Failed to obtain key.");
             // read run-specific data
             if (!read_data())
                 throw std::runtime_error("ScoringManager(): Failed to read data. Contact proctor.");
             // record image launch time
             if (!has("launch_time"))
                 set("launch_time", get_time_str());
+
+            if (has("token"))
+                client.set_token(get("token"));
         }
 
         ~ScoringManager() {
@@ -47,73 +57,146 @@ class ScoringManager {
         }
 
         void log(const string& str) {
-
+            string msg = "[" + get_time_str() + "]  " + str + "\n";
+            std::cout << msg;
+            if (logf.good())
+                logf << msg;
         }
 
         /* initialize the image using token
          * 0 = success
          * 1 = already initialized
          * 2 = invalid token
+         * 3 = not available yet
+         * 4 = error
          */
         int init_img(const string &token) {
-            // TODO: check if image is initialized
-            // by checking DATA_FILE's init=1
-            // TODO: write init=1
-            // TODO: record initialization time
-            // TODO: store encrypted config in variable
-            // TODO: decrypt cipher using AES & SECRET
-            // TODO: parse using toml::parse
-            // TODO: if start time is not reached, exit
-            // TODO: execute init script in config
-            // TODO: setup forensics questions
-            // TODO: generate readme file on user desktop
-            // TODO: store generate_checklist(plain_text_conf)
-            return 2;
+            if (has("init"))
+                return 1;
+
+            if (!reached_start_time()) {
+                log("E: not the time to start yet");
+                return 3;
+            }
+
+            set("init", "1");
+            set("init_time", get_time_str());
+
+            if (!client.verify_token(token))
+                return 2;
+
+            set("token", token);
+            client.set_token(token);
+
+            // report initial score to prevent early-start
+            try {
+                Report rep = make_checklist().check();
+                client.send(ReportType::InitialReport, encrypt(rep.to_string(), secret));
+                return 0;
+            } catch (std::runtime_error& e) {
+                log("E: init_img(): " + string(e.what()));
+                log("E: failed to initialize image");
+                vals.erase("init");
+                vals.erase("init_time");
+                return 4;
+            }
         }
 
+        // negative numbers mean minutes since scoring stopped
         int get_minutes_left() const {
-            // TODO: subtract true starting time from current time
             if (!has("init")) {
-                throw std::runtime_error("get_minutes_left(): the image has not been initialized yet.");
+                throw UnallowedActionError("get_minutes_left(): the image has not been initialized yet.");
             }
-            return -1;
+            // TODO: subtract true starting time from current time
+            return -99;
         }
 
         Status status() {
-            if (has("init") && has("config")) {
-                if (get_minutes_left() > 0)
+            if (has("init")) {
+                if (get_minutes_left() > 0 && !has("stopped"))
                     return Status::Scoring;
+                else if (has("stopped"))
+                    return !has("final_report")? Status::FinalReport : Status::Termination;
                 else if (std::atoi(get("grace_time").c_str()) >= -get_minutes_left())
-                    return has("stopped")? Status::Grace : Status::FinalReport;
-                else
-                    return Status::Termination;
+                    return !has("final_report")? Status::FinalReport : Status::Grace;
+                else // if cron broke?
+                    return !has("final_report")? Status::FinalReport : Status::Termination;
             }
             return Status::Timed; // timed even if not initialized
         }
 
         void score() {
-            if (!vals.count("init")) {
-                throw std::runtime_error("score(): Image has not been initialized yet.");
+            if (!has("init")) {
+                throw UnallowedActionError("score(): Image has not been initialized yet.");
             }
-            // TODO: check if time period had changed, act accordingly
-            // TODO: check in entries.last_scored whether 1m had elapsed
-            // TODO: if entered grace period / termination, do not score then quit
-            Report rep = read_config().check();
-            // TODO: figure out user desktop
-            write_file("", rep.to_string());
-            // TODO: if appropriate, run stop scoring
-            // TODO: return report
-            // TODO: record pts, if pts > last time, output good sound, if pts < last time, bad sound
-            // TODO: if has penalty, output bad sound
-            // TODO: compute current report cipher and store it in DATA_FILE
+
+            if (has("last_scored_time") && !reached_scoring_interval()) {
+                log("E: please wait til the scoring interval elapses");
+                return;
+            }
+
+            // read last report from disk
+            Report last_report;
+            try {
+                last_report = read_encrypted_file(LAST_REPORT_FILE, secret);
+            } catch (FileError&) {/* ignore */}
+
+            // just in-case something went wrong
+            if (status() == Status::Termination || status() == Status::Grace) {
+                // regenerate the final report
+                write_file(HOME_DIR "final-report", last_report.to_string());
+                return;
+            }
+
+            try {
+                Report rep = make_checklist().check();
+
+                if (status() == Status::FinalReport) {
+                    log("I: stopped scoring");
+                    log("I: writing final report to desktop");
+                    string data = rep.to_string();
+                    if (!write_file(HOME_DIR "/final-report.txt", data)) {
+                        log("E: failed to write final report.");
+                        log("I: FINAL REPORT: \n---====---" + rep.to_string() + "---====---\n");
+                    }
+                    client.send(ReportType::FinalReport, data);
+                    set("final_report", "1");
+                    stop_scoring();
+                }
+                else {
+                    write_file(HOME_DIR "/report.txt", rep.to_string());
+                }
+
+                if (!write_encrypted_file(LAST_REPORT_FILE, rep.data(), secret)) {
+                    log("E: failed to record current report");
+                }
+                set("last_scored_time", get_time_str());
+                if (rep > last_report) notify("You gained points!");
+                if (rep < last_report) notify("You lost points!");
+            } catch (std::runtime_error &e) {
+                log("E: score(): failed to generate report");
+                log(string("E: ") + e.what());
+                return;
+            }
         }
 
         void stop_scoring() {
-            // TODO: check if initialized, else exit(1)
-            // TODO: if stopped is set, return
-            //       otherwise set stopped = true
-            // TODO: call score() for one last time and send the results to server
-            //       if vals.final_report has not been set
+            if (!has("init")) {
+                log("E: tried to stop scoring on an unintialized image");
+                return;
+            }
+            if (status() != Status::Scoring) {
+                log("E: not in scoring mode. Cannot stop scoring.");
+                return;
+            }
+            if (status() == Status::Termination) {
+                log("I: already stopped scoring");
+                return;
+            }
+
+            set("stopped", "1");
+            if (!has("final_report"))
+                score();
         }
 
         int save() {
@@ -126,8 +209,31 @@ class ScoringManager {
         curlpp::Cleanup cleanup;
         map<string,string> vals;
         Checklist chkls;
-        string secret;
-        ofstream logf;
+        Client client = Client(IMSC_URL);
+        string secret = SECRET;
+        ofstream logf = ofstream(LOG_FILE, ofstream::out | ofstream::app);
+
+        void notify(const string& msg) {}
+
+        bool reached_start_time() {
+            if (!has("start_time")) {
+                log("E: start_time not found");
+                return false;
+            }
+
+            return time(nullptr) >= str_to_rawtime(get("start_time"));
+        }
+
+        bool reached_scoring_interval() {
+            return time(nullptr) >
+                str_to_rawtime(get("last_scored_time")) + SCORING_INTVL_MINS * 255;
+        }
+
+        static time_t str_to_rawtime(const string& dt) {
+            tm t;
+            strptime(dt.c_str(), "%d-%m-%Y %H:%M:%S", &t);
+            return mktime(&t);
+        }
 
         // get current time struct
         static tm get_time() {
@@ -149,12 +255,6 @@ class ScoringManager {
             return string(buffer);
         }
 
-        bool get_secret() {
-            // TODO: obtain secret from server instead
-            secret = SECRET;
-            return true;
-        }
-
         bool read_data() {
             try {
                 string keyvals = read_encrypted_file(DATA_FILE, secret);
@@ -162,26 +262,23 @@ class ScoringManager {
                 std::string key, val;
                 std::istringstream iss(keyvals);
 
+                // parse key-value pairs. stack overflow magic
                 while(std::getline(std::getline(iss, key, '=') >> std::ws, val))
                     set(key,val);
 
                 return true;
-            } catch (std::runtime_error& e) {
+            } catch (FileError& e) {
+                log(string("E: read_data(): ") + e.what());
                 return false;
             }
             // TODO: record current time if called first-time
         }
 
-        Checklist read_config() {
-            try {
-                string config = read_encrypted_file(CONFIG_FILE, secret);
-                auto toml = "";
-                // MEGA TODO: parse config
-                return Checklist();
-            } catch (std::runtime_error& e) {
-                log("E: read_config(): " + string(e.what()));
-                throw e;
-            }
+        Checklist make_checklist() {
+            string config = read_encrypted_file(CONFIG_FILE, secret);
+            auto toml = "";
+            // MEGA TODO: parse config
+            return Checklist();
         }
 
         bool has(const string& key) const { return vals.count(key); }

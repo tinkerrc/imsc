@@ -1,13 +1,14 @@
 #define DEBUG 1
-#include "task.h"
-#include "mgr.h"
+
 #include <string>
 #include <unistd.h>
+
+#include "task.h"
+#include "mgr.h"
 
 using std::string;
 using std::vector;
 using std::cout;
-
 
 /*
  *  1.     user launches image

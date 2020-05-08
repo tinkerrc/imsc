@@ -1,16 +1,25 @@
 #ifndef H_FILE
 #define H_FILE
-#include <crypto++/aes.h>
+
 #include <string>
 #include <fstream>
+
+#include <crypto++/aes.h>
+
 using std::string;
 using std::ifstream;
 using std::ofstream;
 
+class FileError : public std::runtime_error {
+    public:
+        FileError(const string& s) 
+            : std::runtime_error(s.c_str()) {}
+};
+
 string read_file(const string& fname) {
     ifstream ifs(fname);
     if (!ifs.good()) {
-        throw std::runtime_error("read_file(): error reading file");
+        throw FileError("read_file(): error reading file");
     }
 
     string data = "";

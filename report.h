@@ -5,6 +5,7 @@
 #include <vector>
 using std::string;
 using std::vector;
+
 class Report {
     private:
         string time;
@@ -25,9 +26,22 @@ class Report {
             return "";
         }
 
-        // TODO: compare two reports
-        bool operator<(const Report& rhs) {
+        // TODO: return true if lost points or penalized
+        bool operator<(const Report& last) const {
             return false;
+        }
+
+        // TODO: return true if gained points
+        bool operator>(const Report& last) const {
+            return false;
+        }
+
+        bool operator==(const Report& last) const {
+            return false;
+        }
+
+        bool operator!=(const Report& last) const {
+            return !((*this) == last);
         }
 };
 

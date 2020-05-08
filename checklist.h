@@ -1,3 +1,6 @@
+#ifndef H_CHECKLIST
+#define H_CHECKLIST
+
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -44,3 +47,5 @@ class Checklist {
             return Report(); 
         }
 };
+
+#endif
