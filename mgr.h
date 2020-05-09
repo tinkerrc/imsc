@@ -89,8 +89,9 @@ class ScoringManager {
 
             // report initial score to prevent early-start
             try {
-                Report rep = make_checklist().check();
-                client.send(ReportType::InitialReport, encrypt(rep.to_string(), secret));
+                ScoringReport rep = make_checklist().check();
+                add_time_info(rep);
+                client.send(ReportType::InitialReport, encrypt(rep.to_string(true), secret));
                 return 0;
             } catch (std::runtime_error& e) {
                 log("E: init_img(): " + string(e.what()));
@@ -103,14 +104,12 @@ class ScoringManager {
 
         // negative numbers mean minutes since scoring stopped
         int get_minutes_left() const {
-            if (!has("init")) {
-                throw UnallowedActionError("get_minutes_left(): the image has not been initialized yet.");
-            }
-
             if (!has("init"))
-                throw std::logic_error("get_minutes_left(): image not initialized");
+                throw std::logic_error("get_minutes_left(): the image has not been initialized yet.");
+
             int dur = std::atoi(get("duration").c_str());
             int grace_time = std::atoi(get("grace_time").c_str());
+            // NOTE: assuming time_t is Unix timestamp
             time_t term_time = str_to_rawtime(get("init_time")) + dur * 60;
             return (term_time - time(0))/60;
         }
@@ -140,20 +139,23 @@ class ScoringManager {
             }
 
             // read last report from disk
-            Report last_report;
+            ScoringReport last_report;
             try {
                 last_report = read_encrypted_file(LAST_REPORT_FILE, secret);
-            } catch (FileError&) {/* ignore */}
+            } catch (...) {
+                log("E: error reading last report");
+            }
 
             // just in-case something went wrong
             if (status() == Status::Termination || status() == Status::Grace) {
                 // regenerate the final report
-                write_file(HOME_DIR "final-report", last_report.to_string());
+                write_file(HOME_DIR "final-report", last_report.to_string(true));
                 return;
             }
 
             try {
-                Report rep = make_checklist().check();
+                ScoringReport rep = make_checklist().check();
+                add_time_info(rep);
 
                 if (status() == Status::FinalReport) {
                     log("I: stopped scoring");
@@ -175,8 +177,8 @@ class ScoringManager {
                     log("E: failed to record current report");
                 }
                 set("last_scored_time", get_time_str());
-                if (rep > last_report) notify("You gained points!");
-                if (rep < last_report) notify("You lost points!");
+                if (rep.gained_since(last_report)) notify("You gained points!");
+                if (rep.lost_since(last_report)) notify("You lost points!");
             } catch (std::runtime_error &e) {
                 log("E: score(): failed to generate report");
                 log(string("E: ") + e.what());
@@ -225,7 +227,18 @@ class ScoringManager {
         string secret = SECRET; 
         ofstream logf = ofstream(LOG_FILE, ofstream::out | ofstream::app);
 
-        void notify(const string& msg) {}
+        void notify(const string& msg) {
+
+
+        }
+
+        void add_time_info(ScoringReport& rep) const {
+            rep.set_start_time(get("init_time"));
+            rep.set_time_recorded(get_time_str());
+            int mins = get_minutes_left();
+            rep.set_time_left(std::to_string(mins/60) + " hr " +
+                    std::to_string(mins%60) + " mins ");
+        }
 
         bool reached_start_time() {
             if (!has("start_time")) {
@@ -243,7 +256,7 @@ class ScoringManager {
 
         static time_t str_to_rawtime(const string& dt) {
             tm t;
-            strptime(dt.c_str(), "%Y-%m-%dT%H:%M:%S", &t);
+            strptime(dt.c_str(), "%Y-%m-%d %H:%M:%S", &t);
             return mktime(&t);
         }
 
@@ -263,7 +276,7 @@ class ScoringManager {
         static string get_time_str() {
             char buffer[80];
             tm lt = get_time();
-            strftime(buffer,sizeof(buffer),"%Y-%m-%dT%H:%M:%S",&lt);
+            strftime(buffer,sizeof(buffer),"%Y-%m-%d %H:%M:%S",&lt);
             return string(buffer);
         }
 
@@ -295,7 +308,7 @@ class ScoringManager {
 
             auto rules = toml::find<toml::array>(toml_chkls, "rules");
 
-            Checklist chkls;
+            Checklist chkls(title);
             for (const auto& rule : rules) {
                 Rule r;
                 r.name = toml::find<string>(rule, "name");
