@@ -30,8 +30,8 @@ using std::cout;
 int main(int argc, char *argv[]) {
     int ret;
     try {
-        ScoringManager mgr;
         Task t = get_task(argc, argv);
+        ScoringManager mgr;
         switch (t.index()) {
             case TASK_INIT:
                 mgr.init_img(std::get<InitTask>(t).token);
