@@ -4,6 +4,10 @@
 #include <string>
 #include <stdexcept>
 
+#include <curlpp/Easy.hpp>
+#include <curlpp/cURLpp.hpp>
+#include <toml/parser.hpp>
+
 #include "config.h"
 
 using std::string;
@@ -14,10 +18,23 @@ enum class ReportType {
     FinalReport
 };
 
-class Client {
-    public:
-        Client(const string& url) {
+class InvalidTokenError : public std::runtime_error {
+    InvalidTokenError(const string& s)
+        : std::runtime_error(s) {}
+};
 
+class Client {
+    private:
+        curlpp::Cleanup cleanup;
+        static bool created;
+        string url = "";
+    public:
+        Client(const string& url) : url(url) {
+            if (created) {
+                // because of curlpp
+                throw std::logic_error("only one client object is allowed per process");
+            }
+            created = true;
         }
 
         bool verify_token(const string& token) {
@@ -32,5 +49,7 @@ class Client {
             return false;
         }
 };
+
+bool Client::created = false;
 
 #endif

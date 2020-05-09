@@ -4,46 +4,48 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <sys/wait.h>
+
+#include <boost/algorithm/string/classification.hpp> // boost::for is_any_of
+#include <boost/algorithm/string/split.hpp> // boost::split
+
 #include "report.h"
-#include <toml/parser.hpp>
 
 using std::string;
 using std::vector;
 
 struct Rule {
     string name = "";
+    // distinguish b/w others w/ same name
+    string uniq = "";
     int pts = 0;
-
     string cmd = "";
-    // if neg == true and 
-    // cmd exits with non-zero value,
-    // pts will be applied
-    bool neg = false;     
-
+    bool neg = false; // negates cmd exit code
     // reserved
     string preset = "";
     vector<string> args;
+
+    bool check() const {
+        int ret = system(cmd.c_str());
+        bool success = WEXITSTATUS(ret) == 0x10;
+        return neg? !success : success;
+    }
 };
 
 class Checklist {
     private:
-        
+        vector<Rule> rules;
         
     public:
-        Checklist(const std::string& config) {
-            // assume the config is syntatically correct
-            if (!configure(config))
-                throw std::runtime_error("Failed to configure checklist");
-        }
-        Checklist(){}
+        Checklist() = default;
 
-        bool configure(const std::string &config) {
-
-            return true;
+        void add_rule(const Rule& r) {
+            rules.push_back(r);
         }
 
         // iterate the checklist and generate a report
         Report check() { 
+            // TODO: implement this
             return Report(); 
         }
 };

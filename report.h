@@ -36,6 +36,7 @@ class Report {
             return false;
         }
 
+        // TODO: implement
         bool operator==(const Report& last) const {
             return false;
         }

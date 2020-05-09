@@ -7,9 +7,7 @@
 #include <fstream>
 #include <iostream>
 
-#include <curlpp/Easy.hpp>
-#include <curlpp/cURLpp.hpp>
-#include <toml/parser.hpp>
+#include <toml.hpp>
 
 #include "file.h"
 #include "checklist.h"
@@ -41,9 +39,10 @@ class ScoringManager {
         };
 
         ScoringManager() {
-            // read run-specific data
+            // read state information
             if (!read_data())
-                throw std::runtime_error("ScoringManager(): Failed to read data. Contact proctor.");
+                throw std::runtime_error
+                    ("ScoringManager(): Failed to read data. Contact proctor.");
             // record image launch time
             if (!has("launch_time"))
                 set("launch_time", get_time_str());
@@ -107,8 +106,13 @@ class ScoringManager {
             if (!has("init")) {
                 throw UnallowedActionError("get_minutes_left(): the image has not been initialized yet.");
             }
-            // TODO: subtract true starting time from current time
-            return -99;
+
+            if (!has("init"))
+                throw std::logic_error("get_minutes_left(): image not initialized");
+            int dur = std::atoi(get("duration").c_str());
+            int grace_time = std::atoi(get("grace_time").c_str());
+            time_t term_time = str_to_rawtime(get("init_time")) + dur * 60;
+            return (term_time - time(0))/60;
         }
 
         Status status() {
@@ -200,17 +204,25 @@ class ScoringManager {
         }
 
         int save() {
-            // TODO: write key value pairs to DATA_FILE
-            return 0;
+            log("I: saving config data");
+            // write key-value pairs to CONFIG_FILE
+            string plain = "";
+            for (auto it = vals.begin(); it != vals.end(); it++) {
+                plain += it->first + "=" + it->second + "\n";
+            }
+            // use the opposite value for exit code.
+            bool ret = write_encrypted_file(CONFIG_FILE, plain, secret);
+            if (!ret) log("E: failed to save config data");
+            return !ret;
         }
 
     private:
 
-        curlpp::Cleanup cleanup;
-        map<string,string> vals;
-        Checklist chkls;
-        Client client = Client(IMSC_URL);
-        string secret = SECRET;
+        map<string,string> vals; // config
+        Client client = Client(IMSC_URL); // connect to imsc server
+        // hard-coded encryption key
+        // extremely unsafe but whatever
+        string secret = SECRET; 
         ofstream logf = ofstream(LOG_FILE, ofstream::out | ofstream::app);
 
         void notify(const string& msg) {}
@@ -226,12 +238,12 @@ class ScoringManager {
 
         bool reached_scoring_interval() {
             return time(nullptr) >
-                str_to_rawtime(get("last_scored_time")) + SCORING_INTVL_MINS * 255;
+                str_to_rawtime(get("last_scored_time")) + SCORING_INTVL_MINS * 60;
         }
 
         static time_t str_to_rawtime(const string& dt) {
             tm t;
-            strptime(dt.c_str(), "%d-%m-%Y %H:%M:%S", &t);
+            strptime(dt.c_str(), "%Y-%m-%dT%H:%M:%S", &t);
             return mktime(&t);
         }
 
@@ -251,13 +263,13 @@ class ScoringManager {
         static string get_time_str() {
             char buffer[80];
             tm lt = get_time();
-            strftime(buffer,sizeof(buffer),"%d-%m-%Y %H:%M:%S",&lt);
+            strftime(buffer,sizeof(buffer),"%Y-%m-%dT%H:%M:%S",&lt);
             return string(buffer);
         }
 
         bool read_data() {
             try {
-                string keyvals = read_encrypted_file(DATA_FILE, secret);
+                string keyvals = read_encrypted_file(CONFIG_FILE, secret);
 
                 std::string key, val;
                 std::istringstream iss(keyvals);
@@ -271,13 +283,30 @@ class ScoringManager {
                 log(string("E: read_data(): ") + e.what());
                 return false;
             }
-            // TODO: record current time if called first-time
         }
 
         Checklist make_checklist() {
-            string config = read_encrypted_file(CONFIG_FILE, secret);
-            auto toml = "";
-            // MEGA TODO: parse config
+            string chkls_str = read_encrypted_file(CHECKLIST_FILE, secret);
+            std::istringstream iss(chkls_str);
+            auto toml_chkls = toml::parse(iss);
+
+            string title = toml::find<string>(toml_chkls, "title");
+            string user = toml::find<string>(toml_chkls, "user");
+
+            auto rules = toml::find<toml::array>(toml_chkls, "rules");
+
+            Checklist chkls;
+            for (const auto& rule : rules) {
+                Rule r;
+                r.name = toml::find<string>(rule, "name");
+                r.pts = toml::find_or<int>(rule, "pts", 1);
+                r.uniq = toml::find_or<string>(rule, "uniq", "");
+                r.cmd = toml::find<string>(rule, "cmd");
+                r.neg = toml::find_or<bool>(rule, "neg", false);
+                r.preset = toml::find_or<string>(rule, "preset", "");
+                r.args = toml::find_or<vector<string>>(rule, "args", {});
+                chkls.add_rule(r);
+            }
             return Checklist();
         }
 
@@ -286,6 +315,7 @@ class ScoringManager {
         string get(const string& key) const { return vals.at(key); }
 
         void set(const string& key, const string& val) {
+            vals.operator[](key);
             vals[key] = val;
         }
 };

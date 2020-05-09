@@ -28,40 +28,51 @@ using std::cout;
  *
  */
 
+ScoringManager mgr;
+
+void unexpected() {
+    mgr.save();
+}
+
 int main(int argc, char *argv[]) {
-    Task t = get_task(argc, argv);
-    ScoringManager mgr;
-    switch (t.index()) {
-        case TASK_INIT: 
-            mgr.init_img(std::get<InitTask>(t).token);
-            break;
-        case TASK_STOP_SCORING:
-            mgr.stop_scoring();
-            break;
-        case TASK_SCORE:
+    std::set_unexpected(unexpected);
+    try {
+        Task t = get_task(argc, argv);
+        switch (t.index()) {
+            case TASK_INIT:
+                mgr.init_img(std::get<InitTask>(t).token);
+                break;
+            case TASK_STOP_SCORING:
+                mgr.stop_scoring();
+                break;
+            case TASK_SCORE:
 #ifndef DEBUG
-            if (getuid() != 0) {
-                cout << "Must score using root account.\n";
-                exit(1);
-            }
-            mgr.score();
-#endif
-        case TASK_TIME:
-        default:
-            cout << "WHS CSC Image Scoring Engine for Linux\n";
-            if (mgr.status() == ScoringManager::Status::Timed) {
-                int mins_left = mgr.get_minutes_left();
-                if (mins_left == -1) {
-                    std::cerr << "The image has not yet been initialized.\n";
+                if (getuid() != 0) {
+                    cout << "Must score using root account.\n";
                     exit(1);
                 }
-                int hr = mins_left/60;
-                int mins = mins_left%60;
-                cout << "Time remaining: " << hr << " hours " << mins << " minutes\n";
-            }
-            else {
-                std::cerr << "Please initialize the image using your token.\n";
-            }
+                mgr.score();
+#endif
+            case TASK_TIME:
+            default:
+                cout << "WHS CSC Image Scoring Engine for Linux\n";
+                if (mgr.status() == ScoringManager::Scoring) {
+                    int mins_left = mgr.get_minutes_left();
+                    if (mins_left == -1) {
+                        std::cerr << "The image has not yet been initialized.\n";
+                        exit(1);
+                    }
+                    int hr = mins_left/60;
+                    int mins = mins_left%60;
+                    cout << "Time remaining: " << hr << " hours " << mins << " minutes\n";
+                }
+                else {
+                    std::cerr << "Please initialize the image using your token.\n";
+                }
+        }
+
+    } catch (std::exception& e) {
+        mgr.log(string("E: main(): ") + e.what());
     }
     return mgr.save();
 }
