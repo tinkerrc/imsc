@@ -1,9 +1,12 @@
 #define DEBUG 1
 
+#include <vector>
+#include <iostream>
 #include <string>
 
 #include "task.h"
 #include "mgr.h"
+#include "utils.h"
 
 using std::string;
 using std::vector;
@@ -11,18 +14,18 @@ using std::cout;
 
 /*
  *  1.     user launches image
- *  2. [ ] cron runs imsc
+ *  2. [-] cron runs imsc
  *  ---
- *  3. [ ] imsc records image launch time
+ *  3. [x] imsc records image launch time
  *  4. [ ] user runs imsc --token TOKEN
- *  5. [ ] mgr decrypts and start the timer
+ *  5. [x] mgr decrypts and start the timer
  *  6. [ ] contact server, send token, store starting time
  *         send initial score() report to server
- *  7. [ ] cron job : * / 1 * * * * * imsc --score 
+ *  7. [-] cron job : * / 1 * * * * * imsc --score 
  *  8. [ ] score() tells the server the score
- *  8. [ ] score() call stop_scoring() once grace time reached
+ *  8. [x] score() call stop_scoring() once grace time reached
  *         and contact server with final report
- *  9. [ ] generate final report on desktop and output an encrypted
+ *  9. [-] generate final report on desktop and output an encrypted
  *         version as well.
  *
  */
@@ -53,7 +56,7 @@ int main(int argc, char *argv[]) {
                 if (mgr.status() == ScoringManager::Scoring) {
                     int mins_left = mgr.get_minutes_left();
                     if (mins_left == -1) {
-                        std::cerr << "The image has not yet been initialized.\n";
+                        Log() << "E: The image has not yet been initialized.";
                     }
                     else {
                         int hr = mins_left/60;
@@ -62,13 +65,13 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 else {
-                    std::cerr << "Please initialize the image using your token.\n";
+                    Log() << "E: Please initialize the image using your token.\n";
                 }
         }
         ret = mgr.save();
     } catch (std::exception& e) {
-        std::cerr << "E: " << e.what() << "\n";
-        std::cerr << "E: Terminating.\n";
+        Log() << "E: " << e.what();
+        Log() << "E: Terminating.";
     }
     return ret;
 }

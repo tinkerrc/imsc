@@ -1,16 +1,15 @@
+#pragma once
 #ifndef H_CLIENT
 #define H_CLIENT
 
 #include <string>
 #include <stdexcept>
 
-#include <curlpp/Easy.hpp>
 #include <curlpp/cURLpp.hpp>
-#include <toml/parser.hpp>
 
-#include "config.h"
-
-using std::string;
+namespace curlpp {
+    class Cleanup;
+}
 
 enum class ReportType {
     InitialReport,
@@ -19,7 +18,7 @@ enum class ReportType {
 };
 
 class InvalidTokenError : public std::runtime_error {
-    InvalidTokenError(const string& s)
+    InvalidTokenError(const std::string& s)
         : std::runtime_error(s) {}
 };
 
@@ -27,29 +26,16 @@ class Client {
     private:
         curlpp::Cleanup cleanup;
         static bool created;
-        string url = "";
+        std::string url;
+
     public:
-        Client(const string& url) : url(url) {
-            if (created) {
-                // because of curlpp
-                throw std::logic_error("only one client object is allowed per process");
-            }
-            created = true;
-        }
+        Client(const std::string& url);
 
-        bool verify_token(const string& token) {
-            return true;
-        }
+        bool verify_token(const std::string& token);
 
-        void set_token(const string& token) {
-            // TODO: confirm token
-        }
+        void set_token(const std::string& token);
 
-        bool send(ReportType ty, const string& cipher) {
-            return false;
-        }
+        bool send(ReportType ty, const std::string& cipher);
 };
-
-bool Client::created = false;
 
 #endif
