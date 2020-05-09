@@ -1,7 +1,6 @@
 #define DEBUG 1
 
 #include <string>
-#include <unistd.h>
 
 #include "task.h"
 #include "mgr.h"
@@ -28,15 +27,10 @@ using std::cout;
  *
  */
 
-ScoringManager mgr;
-
-void unexpected() {
-    mgr.save();
-}
-
 int main(int argc, char *argv[]) {
-    std::set_unexpected(unexpected);
+    int ret;
     try {
+        ScoringManager mgr;
         Task t = get_task(argc, argv);
         switch (t.index()) {
             case TASK_INIT:
@@ -51,8 +45,8 @@ int main(int argc, char *argv[]) {
                     cout << "Must score using root account.\n";
                     exit(1);
                 }
-                mgr.score();
 #endif
+                mgr.score();
             case TASK_TIME:
             default:
                 cout << "WHS CSC Image Scoring Engine for Linux\n";
@@ -60,19 +54,21 @@ int main(int argc, char *argv[]) {
                     int mins_left = mgr.get_minutes_left();
                     if (mins_left == -1) {
                         std::cerr << "The image has not yet been initialized.\n";
-                        exit(1);
                     }
-                    int hr = mins_left/60;
-                    int mins = mins_left%60;
-                    cout << "Time remaining: " << hr << " hours " << mins << " minutes\n";
+                    else {
+                        int hr = mins_left/60;
+                        int mins = mins_left%60;
+                        cout << "Time remaining: " << hr << " hours " << mins << " minutes\n";
+                    }
                 }
                 else {
                     std::cerr << "Please initialize the image using your token.\n";
                 }
         }
-
+        ret = mgr.save();
     } catch (std::exception& e) {
-        mgr.log(string("E: main(): ") + e.what());
+        std::cerr << "E: " << e.what() << "\n";
+        std::cerr << "E: Terminating.\n";
     }
-    return mgr.save();
+    return ret;
 }

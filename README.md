@@ -2,7 +2,7 @@
 **This project is still under development.**
 
 # Introduction
-This is an attempt at making a scoring engine for practice images for
+This is an attempt at making a scoring engine for practice images (Ubuntu w/ gdm3) for
 CyberPatriot. This is not a daemon, instead it should be run periodically
  (e.g., cron job). The user needs to initialize the image by supplying `imsc`
  a personal token. `imsc` will then tell the server the token and send an initial scoring report

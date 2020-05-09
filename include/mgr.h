@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include <toml.hpp>
+#include <libnotify/notify.h>
 
 #include "file.h"
 #include "checklist.h"
@@ -49,6 +50,7 @@ class ScoringManager {
 
             if (has("token"))
                 client.set_token(get("token"));
+            notify_init("imsc");
         }
 
         ~ScoringManager() {
@@ -228,7 +230,7 @@ class ScoringManager {
         ofstream logf = ofstream(LOG_FILE, ofstream::out | ofstream::app);
 
         void notify(const string& msg) {
-
+            log(string() + "I: " + msg);
 
         }
 
@@ -255,28 +257,24 @@ class ScoringManager {
         }
 
         static time_t str_to_rawtime(const string& dt) {
-            tm t;
+            struct tm t;
             strptime(dt.c_str(), "%Y-%m-%d %H:%M:%S", &t);
             return mktime(&t);
         }
 
         // get current time struct
-        static tm get_time() {
+        static tm* get_time() {
             time_t rawtime;
-            tm* ltime, ret;
-
+            tm* ltime;
             time(&rawtime);
             ltime = localtime(&rawtime);
-            ret = *ltime;
-            delete ltime;
-            return ret;
+            return ltime;
         }
 
         // get formatted time
         static string get_time_str() {
             char buffer[80];
-            tm lt = get_time();
-            strftime(buffer,sizeof(buffer),"%Y-%m-%d %H:%M:%S",&lt);
+            strftime(buffer,sizeof(buffer),"%Y-%m-%d %H:%M:%S",get_time());
             return string(buffer);
         }
 
