@@ -1,6 +1,6 @@
 #pragma once
-#ifndef H_FILE
-#define H_FILE
+#ifndef IMSC_FILE_H
+#define IMSC_FILE_H
 
 #include <string>
 #include <stdexcept>

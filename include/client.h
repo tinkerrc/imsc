@@ -1,6 +1,6 @@
 #pragma once
-#ifndef H_CLIENT
-#define H_CLIENT
+#ifndef IMSC_CLIENT_H
+#define IMSC_CLIENT_H
 
 #include <string>
 #include <stdexcept>

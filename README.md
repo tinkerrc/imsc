@@ -21,6 +21,7 @@ The engine can be configured using 3 files:
  the program can save them and use in the next run. In retrospect I should've
  named it something else.
 - `config.h` specifies some constants that is hardcoded into the binary
+ use `cmake -Dvar1=value -Dvar2=value ...` to define the constants
 
 There will be sample files to play around with when I finish making this.
 
@@ -46,39 +47,29 @@ $ cmake ..
 $ make && sudo make install
 ```
 
-## Create config.h
-Define these macros in `config.h`
-
-```c++
-#ifndef SECRET
-#define SECRET "SECRET_PASSWORD" // hmmm hardcoded into the binary for now
-
-#define HOME_DIR "/home/user" // home folder of the default user in the vm
-
-#define CONFIG_FILE "/etc/imsc1.dat"
-#define CHECKLIST_FILE "/etc/imsc2.dat"
-#define LAST_REPORT_FILE "/etc/imsc3.dat"
-#define LOG_FILE HOME_DIR "/scoring-log.txt"
-
-#define IMSC_URL "http://imsc.example.com" // imsc server
-
-#define SCORING_INTVL_MINS 3 // minutes to wait before next report
-#endif
-```
-In the future I will probably use CMake to set them instead.
+## Build options
+Options that are not required have default values. See `CMakeLists.txt`
+- `IMSC_USER`: ***(required)*** default user of vm
+- `IMSC_URL`: ***(required)*** `imsc` server URL
+- `IMSC_SECRET`: **(recommended)** key that is **hardcoded** into the binary for now
+- `IMSC_CONFIG_FILE`: path for the config file
+- `IMSC_CHECKLIST_FILE`: path for the checklist file
+- `IMSC_LAST_REPORT_FILE`: path for the last (encrypted) report file
 
 ## Build `imsc`
+Your `cmake` arguments may differ
 ```bash
 $ git clone https://www.github.com/oakrc/imsc
 $ cd imsc
 $ mkdir build
 $ cd build
-$ cmake ..
+$ cmake -DIMSC_SECRET=super_strong_key -DIMSC_USER=abc -DIMSC_URL=https://example.com .. 
 $ make
 ```
-
+### Note
 I haven't tested this so I have no idea
- but the binary might need to be built on the target VM...
+ but the binary might need to be built on the target VM... 
+ (assuming you own a Linux machine)
 
 # License
 GPL v3.0, see LICENSE

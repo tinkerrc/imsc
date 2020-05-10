@@ -1,0 +1,21 @@
+#pragma once
+#ifndef IMSC_CONFIG_H
+#define IMSC_CONFIG_H
+
+#cmakedefine imsc_VERSION "@imsc_VERSION@"
+
+#cmakedefine IMSC_SECRET "@IMSC_SECRET@"
+#cmakedefine IMSC_USER "@IMSC_USER@"
+#define IMSC_HOME_DIR "/home/" IMSC_USER 
+
+#cmakedefine IMSC_CONFIG_FILE "@IMSC_CONFIG_FILE@"
+#cmakedefine IMSC_CHECKLIST_FILE "@IMSC_CHECKLIST_FILE@"
+#cmakedefine IMSC_LAST_REPORT_FILE "@IMSC_LAST_REPORT_FILE@"
+#define IMSC_LOG_FILE IMSC_HOME_DIR "/scoring.log"
+
+#cmakedefine IMSC_URL "@IMSC_URL@"
+
+#cmakedefine IMSC_SCORING_INTVL_MINS @IMSC_SCORING_INTVL_MINS@
+
+#endif
+

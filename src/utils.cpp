@@ -46,4 +46,4 @@ Log& Log::operator<<(const std::string& str) {
         ofs << str;
     return *this;
 }
-std::ofstream Log::ofs = std::ofstream(LOG_FILE, std::ofstream::out | std::ofstream::app);
+std::ofstream Log::ofs = std::ofstream(IMSC_LOG_FILE, std::ofstream::out | std::ofstream::app);

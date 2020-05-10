@@ -1,6 +1,6 @@
 #pragma once
-#ifndef H_TASK
-#define H_TASK
+#ifndef IMSC_TASK_H
+#define IMSC_TASK_H
 
 #include <string>
 #include <iosfwd>

@@ -1,6 +1,6 @@
 #pragma once
-#ifndef H_REPORT
-#define H_REPORT
+#ifndef IMSC_REPORT_H
+#define IMSC_REPORT_H
 
 #include <string>
 #include <vector>

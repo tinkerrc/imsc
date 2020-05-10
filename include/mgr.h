@@ -1,6 +1,6 @@
 #pragma once
-#ifndef H_SCORING_MANAGER
-#define H_SCORING_MANAGER
+#ifndef IMSC_SCORING_MANAGER_H
+#define IMSC_SCORING_MANAGER_H
 
 #include <string>
 #include <map>

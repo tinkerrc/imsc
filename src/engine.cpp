@@ -7,6 +7,7 @@
 #include "task.h"
 #include "mgr.h"
 #include "utils.h"
+#include "config.h"
 
 using std::string;
 using std::vector;
@@ -23,8 +24,8 @@ using std::cout;
  *         send initial score() report to server
  *  7. [-] cron job : * / 1 * * * * * imsc --score 
  *  8. [ ] score() tells the server the score
- *  8. [x] score() call stop_scoring() once grace time reached
- *         and contact server with final report
+ *  8. [x] score() calls stop_scoring() once grace period is reached
+ *         and contacts server with final report
  *  9. [-] generate final report on desktop and output an encrypted
  *         version as well.
  *
@@ -33,6 +34,7 @@ using std::cout;
 int main(int argc, char *argv[]) {
     int ret;
     try {
+        Log() << "---==== imsc " << imsc_VERSION << " ====---";
         Task t = get_task(argc, argv);
         ScoringManager mgr;
         switch (t.index()) {

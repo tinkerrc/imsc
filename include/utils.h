@@ -1,6 +1,6 @@
 #pragma once
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef IMSC_UTILS_H
+#define IMSC_UTILS_H
 
 #include <ctime>
 #include <string>

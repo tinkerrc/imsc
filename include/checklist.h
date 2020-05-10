@@ -1,6 +1,6 @@
 #pragma once
-#ifndef H_CHECKLIST
-#define H_CHECKLIST
+#ifndef IMSC_CHECKLIST_H
+#define IMSC_CHECKLIST_H
 
 #include <string>
 #include <vector>

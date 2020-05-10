@@ -13,7 +13,7 @@
 using std::string;
 using std::vector;
 
-ScoringManager::ScoringManager() : client(IMSC_URL), secret(SECRET) {
+ScoringManager::ScoringManager() : client(IMSC_URL), secret(IMSC_SECRET) {
     // read state information
     if (!read_data())
         throw std::runtime_error
@@ -110,7 +110,7 @@ void ScoringManager::score() {
     // read last report from disk
     ScoringReport last_report;
     try {
-        last_report = read_encrypted_file(LAST_REPORT_FILE, secret);
+        last_report = read_encrypted_file(IMSC_LAST_REPORT_FILE, secret);
     } catch (...) {
         Log("E: error reading last report");
     }
@@ -118,7 +118,7 @@ void ScoringManager::score() {
     // just in-case something went wrong
     if (status() == Status::Termination || status() == Status::Grace) {
         // regenerate the final report
-        write_file(HOME_DIR "final-report", last_report.to_string(true));
+        write_file(IMSC_HOME_DIR "final-report", last_report.to_string(true));
         return;
     }
 
@@ -130,7 +130,7 @@ void ScoringManager::score() {
             Log("I: stopped scoring");
             Log("I: writing final report to desktop");
             string data = rep.to_string();
-            if (!write_file(HOME_DIR "/final-report.txt", data)) {
+            if (!write_file(IMSC_HOME_DIR "/final-report.txt", data)) {
                 Log("E: failed to write final report.");
                 Log("I: FINAL REPORT: \n---====---" + rep.to_string() + "---====---\n");
             }
@@ -139,10 +139,10 @@ void ScoringManager::score() {
             stop_scoring();
         }
         else {
-            write_file(HOME_DIR "/report.txt", rep.to_string());
+            write_file(IMSC_HOME_DIR "/report.txt", rep.to_string());
         }
 
-        if (!write_encrypted_file(LAST_REPORT_FILE, rep.data(), secret)) {
+        if (!write_encrypted_file(IMSC_LAST_REPORT_FILE, rep.data(), secret)) {
             Log("E: failed to record current report");
         }
         set("last_scored_time", get_time_str());
@@ -182,7 +182,7 @@ int ScoringManager::save() const {
         plain += it->first + "=" + it->second + "\n";
     }
     // use the opposite value for exit code.
-    bool ret = write_encrypted_file(CONFIG_FILE, plain, secret);
+    bool ret = write_encrypted_file(IMSC_CONFIG_FILE, plain, secret);
     if (!ret) Log("E: failed to save config data");
     return !ret;
 }
@@ -210,12 +210,12 @@ bool ScoringManager::reached_start_time() const {
 
 bool ScoringManager::reached_scoring_interval() const {
     return time(nullptr) >
-        str_to_rawtime(get("last_scored_time")) + SCORING_INTVL_MINS * 60;
+        str_to_rawtime(get("last_scored_time")) + IMSC_SCORING_INTVL_MINS * 60;
 }
 
 bool ScoringManager::read_data() {
     try {
-        string keyvals = read_encrypted_file(CONFIG_FILE, secret);
+        string keyvals = read_encrypted_file(IMSC_CONFIG_FILE, secret);
 
         std::string key, val;
         std::istringstream iss(keyvals);
@@ -232,7 +232,7 @@ bool ScoringManager::read_data() {
 }
 
 Checklist ScoringManager::make_checklist() const {
-    string chkls_str = read_encrypted_file(CHECKLIST_FILE, secret);
+    string chkls_str = read_encrypted_file(IMSC_CHECKLIST_FILE, secret);
     std::istringstream iss(chkls_str);
     auto toml_chkls = toml::parse(iss);
 
