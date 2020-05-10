@@ -1,7 +1,6 @@
-Debug/
-Release/
+debug/
+release/
 compile_commands.json
 config.toml
-.ccls
 config.h
 config.dat
