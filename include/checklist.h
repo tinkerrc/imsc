@@ -13,7 +13,7 @@ struct Rule {
     std::string uniq; // might be useless
     int pts = 0;
     std::string cmd;
-    bool neg = false; // negates cmd exit code
+    int code = 0;
     // reserved
     std::string preset;
     std::vector<std::string> args;
@@ -25,7 +25,7 @@ class Checklist {
     private:
         std::string title;
         std::vector<Rule> rules;
-        
+
     public:
         Checklist() = default;
         Checklist(const std::string& title)

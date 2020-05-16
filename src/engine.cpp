@@ -3,8 +3,9 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <unistd.h>
+#include <thread>
 
-#include "task.h"
 #include "mgr.h"
 #include "utils.h"
 #include "config.h"
@@ -14,66 +15,48 @@ using std::vector;
 using std::cout;
 
 /*
- *  1.     user launches image
- *  2. [-] cron runs imsc
- *  ---
- *  3. [x] imsc records image launch time
- *  4. [ ] user runs imsc --token TOKEN
- *  5. [x] mgr decrypts and start the timer
- *  6. [ ] contact server, send token, store starting time
- *         send initial score() report to server
- *  7. [-] cron job : * / 1 * * * * * imsc --score 
- *  8. [ ] score() tells the server the score
- *  8. [x] score() calls stop_scoring() once grace period is reached
- *         and contacts server with final report
- *  9. [-] generate final report on desktop and output an encrypted
- *         version as well.
- *
+ * setup the image first
+ * put the scoring report link on desktop
+ * ...
+ * [ ] GET: checklist (JSON), config using token 
+ * [ ] generate scoring report in JSON
+ * [ ] POST: report
+ * [ ] sleep
+ * [ ] repeat
  */
 
 int main(int argc, char *argv[]) {
-    int ret;
     try {
-        Log() << "---==== imsc " << imsc_VERSION << " ====---";
-        Task t = get_task(argc, argv);
-        ScoringManager mgr;
-        switch (t.index()) {
-            case TASK_INIT:
-                mgr.init_img(std::get<InitTask>(t).token);
-                break;
-            case TASK_STOP_SCORING:
-                mgr.stop_scoring();
-                break;
-            case TASK_SCORE:
-#ifndef DEBUG
-                if (getuid() != 0) {
-                    cout << "Must score using root account.\n";
-                    exit(1);
-                }
-#endif
-                mgr.score();
-            case TASK_TIME:
-            default:
-                cout << "WHS CSC Image Scoring Engine for Linux\n";
-                if (mgr.status() == ScoringManager::Scoring) {
-                    int mins_left = mgr.get_minutes_left();
-                    if (mins_left == -1) {
-                        Log() << "E: The image has not yet been initialized.";
-                    }
-                    else {
-                        int hr = mins_left/60;
-                        int mins = mins_left%60;
-                        cout << "Time remaining: " << hr << " hours " << mins << " minutes\n";
-                    }
-                }
-                else {
-                    Log() << "E: Please initialize the image using your token.\n";
-                }
+        cout << "---==== imsc " << IMSC_VERSION << " ====---";
+        cout << "GitHub: oakrc/imsc";
+
+        if (argc != 2)
+            throw std::runtime_error("Please supply a token");
+
+        if (string("-h") == argv[1] || string("--help") == argv[1]) {
+            cout << "Usage: " << argv[0] << " TOKEN\n";
+            return 0;
         }
-        ret = mgr.save();
-    } catch (std::exception& e) {
-        Log() << "E: " << e.what();
-        Log() << "E: Terminating.";
+        
+        if (geteuid() != 0) {
+            throw std::runtime_error("imsc needs root privileges to score");
+        }
+        ScoringManager mgr(argv[1]);
+        Status s;
+        while (1) {
+            s = mgr.status();
+            if (s == Status::Termination || s == Status::Invalid) {
+                Log() << "Terminating.";
+                return 0;
+            }
+            Log() << "Scoring...";
+            mgr.score();
+            Log() << "Sleeping...";
+            std::this_thread::sleep_for(std::chrono::minutes(1));
+        }
+    } catch (const std::exception& e) {
+        Err() << e.what();
+        Err() << "Terminating.";
     }
-    return ret;
+    return 0;
 }

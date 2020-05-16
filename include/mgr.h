@@ -3,83 +3,50 @@
 #define IMSC_SCORING_MANAGER_H
 
 #include <string>
-#include <map>
 
-#include "client.h"
+#include <curlpp/cURLpp.hpp>
+#include "checklist.h"
+#include "report.h"
 
-class Checklist;
-class ScoringReport;
-
-class UnallowedActionError : public std::runtime_error {
-    public:
-        UnallowedActionError(const std::string& s)
-            : std::runtime_error(s) {}
+enum class Status {
+    Invalid,
+    Wait,
+    Score,
+    Termination
 };
 
 // the scoring engine
-// the Checklist class actually scores
+// Checklist is the one that actually scores
 class ScoringManager {
 
     public:
-        enum Status {
-            Timed,
-            Scoring,
-            FinalReport,
-            Grace,
-            Termination
-        };
 
-        ScoringManager();
-
-        ~ScoringManager();
-
-        /* initialize the image using token
-         * 0 = success
-         * 1 = already initialized
-         * 2 = invalid token
-         * 3 = not available yet
-         * 4 = error
-         */
-        int init_img(const std::string &token);
-
-        /* returns minutes left til scoring stops
-         * negative numbers mean minutes since scoring stopped 
-         */
-        int get_minutes_left() const;
-
-        Status status() const;
+        ScoringManager(const std::string& tok);
 
         void score();
 
-        void stop_scoring();
-
-        int save() const;
+        Status status();
 
     private:
 
-        std::map<std::string,std::string> vals; // config
-        Client client; // connect to imsc server
-        std::string secret; // hardcoded
+        Checklist checklist;
+        ScoringReport last_report;
+        curlpp::Cleanup cleanup;
+        std::string token;
+
+        std::string start_time;
+        std::string user;
+        std::string image_name;
+        int duration = 0; // minutes
+        int warn_mins = 15;
 
         void notify(const std::string& msg) const;
 
-        void add_time_info(ScoringReport& rep) const;
+        int get_minutes_left() const;
 
-        bool reached_start_time() const;
+        void make_checklist(const std::string& chkls_str);
 
-        bool reached_scoring_interval() const;
-
-        bool read_data();
-
-        Checklist make_checklist() const;
-
-        bool has(const std::string& key) const { return vals.count(key); }
-
-        std::string get(const std::string& key) const { return vals.at(key); }
-
-        void set(const std::string& key, const std::string& val) {
-            vals[key] = val;
-        }
+        void send_report(const ScoringReport& report) const;
 };
 
 #endif

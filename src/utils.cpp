@@ -27,8 +27,8 @@ string get_time_str() {
     return string(buffer);
 }
 
-Log::Log(const string& str) {
-    string msg = "[" + get_time_str() + "]  " + str;
+Log::Log(const string& pfx) {
+    string msg = "[" + get_time_str() + "]  " + pfx;
     std::cout << msg;
     if (ofs.good())
         ofs << msg;
@@ -44,6 +44,13 @@ Log& Log::operator<<(const std::string& str) {
     std::cout << str;
     if (ofs.good())
         ofs << str;
+    return *this;
+}
+
+Log& Log::operator<<(int n) {
+    std::cout << n;
+    if (ofs.good())
+        ofs << n;
     return *this;
 }
 std::ofstream Log::ofs = std::ofstream(IMSC_LOG_FILE, std::ofstream::out | std::ofstream::app);

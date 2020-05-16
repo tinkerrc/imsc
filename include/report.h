@@ -5,43 +5,34 @@
 #include <string>
 #include <vector>
 
-struct ScoredItem {
-    std::string name;
-    std::string uniq;
-    int pts = 0;
-};
+#include "nlohmann/json.hpp"
 
+// a wrapper class for json
 class ScoringReport {
     private:
-        std::string start_time;
-        std::string time_recorded;
-        std::string time_left;
-
-        std::vector<ScoredItem> vulns; // pos pts
-        std::vector<ScoredItem> penalties; // neg pts
-
-        std::string title; // title of practice image
-        int max_pts = 0; // max points possible
-        int total_vulns = 0; // total # of vulns
+        nlohmann::json data;
 
     public:
         ScoringReport() = default;
-        ScoringReport(const std::string& data);
+
+        ScoringReport(const nlohmann::json& d)
+            : data(d) {}
+
+        ScoringReport(nlohmann::json&& d)
+            : data(d) {}
 
         // returns human-readable data
         std::string to_string(bool use_uniq = false) const;
 
-        void set_title(const std::string& s) { title = s; }
-        void set_max_pts(int p) { max_pts = p; }
-        void set_total_vulns(int n) { total_vulns = n; }
-        void set_start_time(const std::string& s) { start_time = s; }
-        void set_time_recorded(const std::string& s) { time_recorded = s; }
-        void set_time_left(const std::string& s) { time_left = s; }
+        void set_title(const std::string& s) { data["title"] = s; }
+        void set_max_pts(int p) { data["max_pts"] = p; }
+        void set_total_vulns(int n) { data["total_vulns"] = n; }
+        void set_start_time(const std::string& s) { data["start_time"] = s; }
+        void set_time_recorded(const std::string& s) { data["time_recorded"] = s; }
+        void set_time_left(const std::string& s) { data["time_left"] = s; }
 
-        std::string summary() const;
-
-        // returns parsable data
-        std::string data() const;
+        nlohmann::json to_json() const { return data; }
+        operator nlohmann::json() const { return data; }
 
         int pts() const { return penal_pts() + vulns_pts(); }
 
@@ -53,7 +44,7 @@ class ScoringReport {
 
         bool gained_since(const ScoringReport& last) const;
 
-        void add_item(const ScoredItem& itm);
+        void add_item(const nlohmann::json& itm);
 };
 
 #endif

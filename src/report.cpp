@@ -2,76 +2,48 @@
 
 #include <sstream>
 
-#include <boost/algorithm/string/classification.hpp> // boost::is_any_of
-#include <boost/algorithm/string/split.hpp> // boost::split
+#include "nlohmann/json.hpp"
 
 using std::string;
 using std::vector;
+using json = nlohmann::json;
 
-ScoringReport::ScoringReport(const string& data) { // parse data
-    vector<string> lines;
-    boost::split(lines, data, boost::is_any_of("\n"), boost::token_compress_on);
-
-    if (lines.size() < 3)
-        throw std::runtime_error("Report(): invalid report data");
-    start_time = lines[0];
-    time_recorded = lines[1];
-    time_left = lines[2];
-
-    ScoredItem itm;
-    vector<string> fields;
-    size_t nl = lines.size();
-    for (size_t i = 3; i != nl; i++) {
-        const string& ln = lines[i];
-        fields.clear();
-        boost::split(fields, ln, boost::is_any_of(",, "), boost::token_compress_off);
-        if (fields.size() != 3) continue;
-
-        itm.name = fields[0];
-        itm.uniq = fields[1];
-        itm.pts = std::atoi(fields[2].c_str());
-
-        if (itm.pts > 0) vulns.push_back(itm);
-        else if (itm.pts < 0) penalties.push_back(itm);
-    }
-}
 
 string ScoringReport::to_string(bool use_uniq) const {
-    // TODO: implement
     std::stringstream ss;
-    ss << (title.empty()? "Practice Image" : title);
+    ss << (data["title"].empty()? "Practice Image" : data["title"]);
     ss << " Scoring Report\n\n";
 
-    ss << "Timestamp: " << time_recorded << "\n"
-        << "Start time: " << start_time << "\n"
-        << "Time Left: " << time_left << "\n\n";
+    ss << "Timestamp: " << data["time_recorded"].get<string>() << "\n"
+        << "Start time: " << data["start_time"].get<string>() << "\n"
+        << "Time Left: " << data["time_left"].get<string>() << "\n\n";
 
-    ss << "Score: " << pts() << " / " << max_pts << " pts\n";
-    if (penalties.size())
+    ss << "Score: " << pts() << " / " << data["max_pts"].get<int>() << " pts\n";
+    if (data["penalties"].size())
         ss << "  - Penalties: " << penal_pts() << " pts\n";
-    if (vulns.size())
+    if (data["vulns"].size())
         ss << "  - Vulnerabilities: " << vulns_pts() << " pts\n";
     ss << "\n";
 
-    auto add_list = [&] (const vector<ScoredItem> ls) {
+    auto add_list = [&] (const json& ls) {
         for (const auto& itm : ls) {
-            ss << "  - " << itm.name;
-            if (use_uniq && itm.uniq.size())
-                ss << " [" << itm.uniq << "]";
-            ss <<" (" << itm.pts << " pts)\n";
+            ss << "  - " << itm["name"].get<string>();
+            if (use_uniq && itm["uniq"].get<string>().size())
+                ss << " [" << itm["uniq"].get<string>() << "]";
+            ss <<" (" << itm["pts"].get<int>() << " pts)\n";
         }
     };
 
-    if (penalties.size()) {
-        ss << "Got " << penalties.size() << " penalties\n";
-        add_list(penalties);
+    if (data["penalties"].size()) {
+        ss << "Got " << data["penalties"].size() << " penalties\n";
+        add_list(data["penalties"]);
         ss << '\n';
     }
 
-    if (vulns.size()) {
-        ss << "Fixed " << vulns.size() << " out of "
-            << total_vulns << " vulnerabilities\n";
-        add_list(vulns);
+    if (data["vulns"].size()) {
+        ss << "Fixed " << data["vulns"].size() << " out of "
+            << data["total_vulns"].get<int>() << " vulnerabilities\n";
+        add_list(data["vulns"]);
         ss << '\n';
     }
 
@@ -79,47 +51,17 @@ string ScoringReport::to_string(bool use_uniq) const {
     return ss.str();
 }
 
-string ScoringReport::summary() const {
-    std::stringstream ss;
-    ss << "total: " << pts() << " pts\n"
-        << vulns.size()
-        << " vulns "
-        << vulns_pts() << " pts\n"
-        << penalties.size()
-        << penal_pts() << " pts\n";
-    return ss.str();
-}
-
-// returns parsable data
-string ScoringReport::data() const {
-    string d = "";
-    d += start_time + "\n";
-    d += time_recorded + "\n";
-    d += time_left + "\n";
-    for (const auto& itm : vulns) {
-        d += itm.name + ",, " 
-            + itm.uniq + ",, "
-            + std::to_string(itm.pts) + "\n";
-    }
-    for (const auto& itm : penalties) {
-        d += itm.name + ",, " 
-            + itm.uniq + ",, "
-            + std::to_string(itm.pts) + "\n";
-    }
-    return d;
-}
-
 int ScoringReport::penal_pts() const {
     int pts = 0;
-    for (const auto& itm : penalties)
-        pts += itm.pts;
+    for (const auto& itm : data["penalties"])
+        pts += itm["pts"].get<int>();
     return pts;
 }
 
 int ScoringReport::vulns_pts() const {
     int pts = 0;
-    for (const auto& itm : vulns)
-        pts += itm.pts;
+    for (const auto& itm : data["vulns"])
+        pts += itm["pts"].get<int>();
     return pts;
 }
 
@@ -135,7 +77,7 @@ bool ScoringReport::gained_since(const ScoringReport& last) const {
         && vulns_pts() >= last.vulns_pts();
 }
 
-void ScoringReport::add_item(const ScoredItem& itm) {
-    if (itm.pts > 0) vulns.push_back(itm);
-    else if (itm.pts < 0) penalties.push_back(itm);
+void ScoringReport::add_item(const json& itm) {
+    if (itm["pts"].get<int>() > 0) data["vulns"].push_back(itm);
+    else if (itm["pts"].get<int>() < 0) data["penalties"].push_back(itm);
 }

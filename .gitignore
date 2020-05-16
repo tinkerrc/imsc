@@ -1,5 +1,5 @@
 debug/
-release/
+build/
 compile_commands.json
 config.toml
 config.h

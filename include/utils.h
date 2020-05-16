@@ -19,9 +19,12 @@ class Log {
         static std::ofstream ofs;
 
     public:
-        Log(const std::string& str = "");
+        Log(const std::string& pfx = "I: ");
         ~Log();
         Log& operator<<(const std::string& str);
+        Log& operator<<(int n);
 };
+
+#define Err() Log("E: ")
 
 #endif

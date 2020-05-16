@@ -8,28 +8,31 @@ using std::vector;
 
 bool Rule::satisfied() const {
     int ret = system(cmd.c_str());
-    bool success = WEXITSTATUS(ret) == 0x10;
-    return neg? !success : success;
+#ifdef __linux__
+    return WEXITSTATUS(ret) == code;
+#elif defined(_WIN32)
+#   error "unimplemented"
+#endif
 }
 
-void Checklist::add_rule(const Rule& r)  {
+void Checklist::add_rule(const Rule& r) {
     rules.push_back(r);
 }
 
 ScoringReport Checklist::check() const {
     ScoringReport rep;
     rep.set_title(title);
-    int n_vulns = 0;
+    int num_vulns = 0;
     rep.set_max_pts(std::accumulate(
-                rules.begin(), rules.end(), 0,
-                [&] (int i, Rule r) {
-                return r.pts > 0? (n_vulns++, i + r.pts) : i;
+                    rules.begin(), rules.end(), 0,
+                    [&] (int i, Rule r) {
+                    return r.pts > 0? (num_vulns++, i + r.pts) : i;
                 }));
-    rep.set_total_vulns(n_vulns);
+    rep.set_total_vulns(num_vulns);
 
-    for (const auto& rule : rules) {
+    for (const auto& rule : rules)
         if (rule.satisfied())
             rep.add_item({rule.name, rule.uniq, rule.pts});
-    }
+
     return rep;
 }
