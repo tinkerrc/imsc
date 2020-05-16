@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
+#include <sys/ptrace.h>
 #include <thread>
 
 #include "mgr.h"
@@ -14,21 +15,17 @@ using std::string;
 using std::vector;
 using std::cout;
 
-/*
- * setup the image first
- * put the scoring report link on desktop
- * ...
- * [ ] GET: checklist (JSON), config using token 
- * [ ] generate scoring report in JSON
- * [ ] POST: report
- * [ ] sleep
- * [ ] repeat
- */
-
 int main(int argc, char *argv[]) {
+    int offset = 0;
+    offset = (!ptrace(PTRACE_TRACEME, 0, 1, 0))?2:0;
+    offset *= ptrace(PTRACE_TRACEME, 0, 1, 0) == -1?3:1;
+    if (offset != 6) {
+        Err() << "Please...";
+        exit(1);
+    }
     try {
-        cout << "---==== imsc " << IMSC_VERSION << " ====---";
-        cout << "GitHub: oakrc/imsc";
+        cout << "---==== imsc " << IMSC_VERSION << " ====---\n";
+        cout << "GitHub: oakrc/imsc\n";
 
         if (argc != 2)
             throw std::runtime_error("Please supply a token");
@@ -50,6 +47,10 @@ int main(int argc, char *argv[]) {
                 return 0;
             }
             Log() << "Scoring...";
+            if (ptrace(PTRACE_TRACEME, 0, 1, 0) == -1) {
+                Err() << "Please...";
+                exit(1);
+            }
             mgr.score();
             Log() << "Sleeping...";
             std::this_thread::sleep_for(std::chrono::minutes(1));
