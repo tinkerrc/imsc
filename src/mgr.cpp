@@ -102,7 +102,7 @@ void ScoringManager::send_report(const ScoringReport& report) const {
 }
 void ScoringManager::notify(const string& msg) const {
     Log() << msg;
-    system(("notify-send 'Scoring Engine' " + msg).c_str());
+    system(("notify-send 'Scoring Engine' '" + msg + "'").c_str());
 }
 
 void ScoringManager::make_checklist(const string& chkls_str) {
