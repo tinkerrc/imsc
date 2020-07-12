@@ -1,5 +1,3 @@
-#define DEBUG 1
-
 #include <vector>
 #include <iostream>
 #include <string>
@@ -47,10 +45,6 @@ int main(int argc, char *argv[]) {
                 return 0;
             }
             Log() << "Scoring...";
-            if (ptrace(PTRACE_TRACEME, 0, 1, 0) == -1) {
-                Err() << "Please...";
-                exit(1);
-            }
             mgr.score();
             Log() << "Sleeping...";
             std::this_thread::sleep_for(std::chrono::minutes(1));

@@ -45,8 +45,6 @@ class ScoringManager {
         int get_minutes_left() const;
 
         void make_checklist(const std::string& chkls_str);
-
-        void send_report(const ScoringReport& report) const;
 };
 
 #endif

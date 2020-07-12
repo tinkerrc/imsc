@@ -21,8 +21,14 @@ void POST(const string& url, const json& data);
 
 ScoringManager::ScoringManager(const string& tok)
 : token(tok) {
+
     Log() << "Acquiring image information";
+#ifdef IMSC_MODE_SERVER
     auto init_data = json::parse(GET(IMSC_URL + ("/image/" + token)));
+#else
+#include "image_config"
+    auto init_data = json::parse(json_str);
+#endif
 
     Log() << "Setting up image";
     start_time = init_data["start_time"].get<string>(); // YYYY-MM-DD HH:MM:SS
@@ -31,12 +37,13 @@ ScoringManager::ScoringManager(const string& tok)
     duration = init_data["duration"].get<int>();
     make_checklist(init_data["checklist"].get<string>());
 
-    Log() << "Writing link to scoring report to desktop";
+#ifdef IMSC_MODE_SERVER
+    Log() << "Writing desktop file for scoring report";
     string url = string(IMSC_URL) + "/report/" + token;
     string sr =
         "[Desktop Entry]\nEncoding=UTF-8\nName=Scoring Report\nType=Link\nURL="
         + url + "\nIcon=text-html\n";
-    std::ofstream ofs("/home/" + user + "/Scoring Report.desktop",
+    std::ofstream ofs("/home/" + user + "/Desktop/Scoring Report.desktop",
             std::ofstream::out | std::ofstream::trunc);
 
     if (ofs.good()) {
@@ -46,6 +53,56 @@ ScoringManager::ScoringManager(const string& tok)
     else {
         Err() << "Error writing link to scoring report to desktop";
         Err() << "Use the URL " + url;
+    }
+#else
+    Log() << "The scoring report will be written to the desktop soon";
+#endif
+}
+
+void ScoringManager::score() {
+    if (status() != Status::Score) {
+        Log() << "Not yet...";
+        return;
+    }
+
+    try {
+        ScoringReport report = checklist.check();
+        Log() << "Current score: " << report.pts();
+
+        int mins = get_minutes_left();
+        report.set_start_time(start_time);
+        report.set_time_left(std::to_string(mins/60) + " hr " +
+                std::to_string(mins%60) + " mins ");
+
+#ifdef IMSC_MODE_LOCAL
+        std::ofstream report_file(
+                string("/home/") + user + "/Desktop/Scoring Report.txt",
+                std::ofstream::out | std::ofstream::trunc);
+        string report_data = report.to_string() + '\n';
+        if (report_file.good()) {
+            report_file << report_data;
+        }
+        else {
+            Err() << "Failed to write scoring report, printing it here instead...\n" + report_data;
+        }
+#else
+        POST(IMSC_URL + string("/report"), report);
+#endif
+
+        if (report.gained_since(last_report)) notify("You gained points!");
+        if (report.lost_since(last_report)) notify("You lost points!");
+
+        if (warn_mins >= get_minutes_left()) {
+            notify("You have less than " + std::to_string(warn_mins) + "left.");
+            warn_mins -= 5;
+        }
+
+        last_report = report;
+    } catch (const std::runtime_error &e) {
+        Err() << "failed to score";
+        Err() << e.what();
+        notify("Error: failed to score");
+        return;
     }
 }
 
@@ -64,42 +121,6 @@ int ScoringManager::get_minutes_left() const {
     return (term_time - time(0))/60;
 }
 
-void ScoringManager::score() {
-    if (status() != Status::Score) {
-        Log() << "Not yet...";
-        return;
-    }
-
-    try {
-        ScoringReport report = checklist.check();
-        Log() << "Current score: " << report.pts();
-
-        int mins = get_minutes_left();
-        report.set_start_time(start_time);
-        report.set_time_left(std::to_string(mins/60) + " hr " +
-                std::to_string(mins%60) + " mins ");
-
-        if (report.gained_since(last_report)) notify("You gained points!");
-        if (report.lost_since(last_report)) notify("You lost points!");
-
-        if (warn_mins >= get_minutes_left()) {
-            notify("You have less than " + std::to_string(warn_mins) + "left.");
-            warn_mins -= 5;
-        }
-
-        send_report(report);
-        last_report = report;
-    } catch (const std::runtime_error &e) {
-        Err() << "score(): failed to generate report";
-        Err() << e.what();
-        return;
-    }
-}
-
-
-void ScoringManager::send_report(const ScoringReport& report) const {
-    POST(IMSC_URL + string("/report"), report);
-}
 void ScoringManager::notify(const string& msg) const {
     Log() << msg;
     system(("notify-send 'Scoring Engine' '" + msg + "'").c_str());
@@ -108,8 +129,6 @@ void ScoringManager::notify(const string& msg) const {
 void ScoringManager::make_checklist(const string& chkls_str) {
     std::istringstream iss(chkls_str);
     auto toml_chkls = toml::parse(iss);
-
-    user = toml::find<string>(toml_chkls, "user");
 
     Checklist chkls(image_name);
     auto rules = toml::find<toml::array>(toml_chkls, "rules");

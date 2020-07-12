@@ -4,3 +4,12 @@ compile_commands.json
 config.toml
 config.h
 config.dat
+image_config
+*~
+\#*\#
+auto-save-list
+tramp
+.\#*
+.projectile
+.ccls-cache
+*.pb.*

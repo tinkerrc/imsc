@@ -4,7 +4,12 @@
 
 #cmakedefine IMSC_VERSION "@IMSC_VERSION@"
 #cmakedefine IMSC_LOG_FILE "@IMSC_LOG_FILE@"
+#cmakedefine IMSC_LOCAL "@IMSC_LOCAL@"
+
+#ifndef IMSC_MODE_LOCAL
+#define IMSC_MODE_SERVER
 #cmakedefine IMSC_URL "@IMSC_URL@"
+#endif
 
 #endif
 
