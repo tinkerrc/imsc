@@ -1,0 +1,33 @@
+#+TITLE: =imsc= - Scoring Engine for Linux
+#+AUTHOR: Zhenkai Weng
+
+*This project is still under development.*
+
+* How does it work
+This is an attempt at making a scoring engine for tryout images (Linux) for CyberPatriot. The user needs to run =imsc TOKEN= after he/she boots up the image. The token is sent by the proctor beforehand.
+
+A tryout image is defined using a TOML config file, which stores a ruleset (a set of vulnerabilities plus a set of penalties) plus some other information such as duration and image name. The proctor can then create tryout sessions for every participant and generate tokens for each. The token is then passed as an argument to ~imsc~ so that it can fetch and upload scoring data.
+
+To use this, you need to host your own server with [[https://github.com/oakrc/imsc-server][imsc-server]] (for now) and set up SSL certificate with ~certbot~ from [[https://letsencrypt.org/][Let's Encrypt]].
+
+* How to Build
+** Install dependencies
+*** Arch
+#+BEGIN_SRC sh
+yay -S libcurlpp # replace yay with your favorite AUR helper
+#+END_SRC
+*** Ubuntu
+#+BEGIN_SRC sh
+sudo apt update
+sudo apt install -y libcurlpp-dev libcurl4-openssl-dev
+#+END_SRC
+** Build
+#+BEGIN_SRC sh
+git clone --recurse-submodules https://www.github.com/oakrc/imsc
+mkdir build
+cd build
+cmake .. -DIMSC_URL=https://imsc.example.com # **CHANGE THIS**
+make && sudo make install
+#+END_SRC
+* License
+GPL v3.0, see ~LICENSE~
