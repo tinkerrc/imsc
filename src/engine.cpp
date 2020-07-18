@@ -23,7 +23,6 @@ int main(int argc, char *argv[]) {
     }
     try {
         cout << "---==== imsc " << IMSC_VERSION << " ====---\n";
-        cout << "GitHub: oakrc/imsc\n";
 
         if (argc != 2)
             throw std::runtime_error("Please supply a token");
@@ -38,7 +37,7 @@ int main(int argc, char *argv[]) {
         }
         ScoringManager mgr(argv[1]);
         Status s;
-        while (1) {
+        for(;;) {
             s = mgr.status();
             if (s == Status::Termination || s == Status::Invalid) {
                 Log() << "Terminating.";

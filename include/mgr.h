@@ -35,7 +35,6 @@ class ScoringManager {
         std::string token;
 
         std::string start_time;
-        std::string user;
         std::string image_name;
         int duration = 0; // minutes
         int warn_mins = 15;
@@ -43,8 +42,6 @@ class ScoringManager {
         void notify(const std::string& msg) const;
 
         int get_minutes_left() const;
-
-        void make_checklist(const std::string& chkls_str);
 };
 
 #endif

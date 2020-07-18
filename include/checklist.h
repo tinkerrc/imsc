@@ -8,15 +8,11 @@
 #include "report.h"
 
 struct Rule {
+    int id = 0;
     std::string name;
-    // distinguish b/w others w/ same name
-    std::string uniq; // might be useless
     int pts = 0;
     std::string cmd;
     int code = 0;
-    // reserved
-    std::string preset;
-    std::vector<std::string> args;
 
     bool satisfied() const;
 };

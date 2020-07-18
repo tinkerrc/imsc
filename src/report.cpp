@@ -9,7 +9,7 @@ using std::vector;
 using json = nlohmann::json;
 
 // for IMSC_MODE_LOCAL
-string ScoringReport::to_string(bool use_uniq) const {
+string ScoringReport::to_string() const {
     std::stringstream ss;
     ss << (data["title"].empty()? "Practice Image" : data["title"]);
     ss << " Scoring Report\n\n";
@@ -28,8 +28,6 @@ string ScoringReport::to_string(bool use_uniq) const {
     auto add_list = [&] (const json& ls) {
         for (const auto& itm : ls) {
             ss << "  - " << itm["name"].get<string>();
-            if (use_uniq && itm["uniq"].get<string>().size())
-                ss << " [" << itm["uniq"].get<string>() << "]";
             ss <<" (" << itm["pts"].get<int>() << " pts)\n";
         }
     };
@@ -78,6 +76,8 @@ bool ScoringReport::gained_since(const ScoringReport& last) const {
 }
 
 void ScoringReport::add_item(const json& itm) {
-    if (itm["pts"].get<int>() > 0) data["vulns"].push_back(itm);
-    else if (itm["pts"].get<int>() < 0) data["penalties"].push_back(itm);
+    if (itm["pts"].get<int>() > 0)
+        data["vulns"].push_back(itm);
+    else if (itm["pts"].get<int>() < 0)
+        data["penalties"].push_back(itm);
 }

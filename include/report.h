@@ -22,7 +22,7 @@ class ScoringReport {
             : data(d) {}
 
         // returns human-readable data
-        std::string to_string(bool use_uniq = false) const;
+        std::string to_string() const;
 
         void set_title(const std::string& s) { data["title"] = s; }
         void set_max_pts(int p) { data["max_pts"] = p; }
@@ -31,8 +31,11 @@ class ScoringReport {
         void set_time_recorded(const std::string& s) { data["time_recorded"] = s; }
         void set_time_left(const std::string& s) { data["time_left"] = s; }
 
-        nlohmann::json to_json() const { return data; }
-        operator nlohmann::json() const { return data; }
+        nlohmann::json to_json() { return (json)(*this); }
+        operator nlohmann::json() {
+            data["pts"] = pts();
+            return data;
+        }
 
         int pts() const { return penal_pts() + vulns_pts(); }
 

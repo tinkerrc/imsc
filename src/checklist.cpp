@@ -32,7 +32,9 @@ ScoringReport Checklist::check() const {
 
     for (const auto& rule : rules)
         if (rule.satisfied())
-            rep.add_item({rule.name, rule.uniq, rule.pts});
+            rep.add_item({{"id", rule.id},
+                          {"name", rule.name},
+                          {"pts", rule.pts}});
 
     return rep;
 }
