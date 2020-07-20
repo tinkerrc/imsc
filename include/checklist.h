@@ -8,24 +8,22 @@
 #include "report.h"
 
 struct Rule {
-    int id = 0;
-    std::string name;
+    std::string id = "";
+    std::string name = "Rule";
     int pts = 0;
-    std::string cmd;
+    std::string cmd = "false";
     int code = 0;
 
     bool satisfied() const;
 };
 
 class Checklist {
+
     private:
-        std::string title;
+
         std::vector<Rule> rules;
 
     public:
-        Checklist() = default;
-        Checklist(const std::string& title)
-            : title(title) {}
 
         void add_rule(const Rule& r);
 

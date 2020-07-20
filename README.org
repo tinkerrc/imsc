@@ -15,11 +15,12 @@ To use this, you need to host your own server with [[https://github.com/oakrc/im
 *** Arch
 #+BEGIN_SRC sh
 yay -S libcurlpp # replace yay with your favorite AUR helper
+sudo pacman -S crypto++
 #+END_SRC
 *** Ubuntu
 #+BEGIN_SRC sh
 sudo apt update
-sudo apt install -y libcurlpp-dev libcurl4-openssl-dev
+sudo apt install -y libcurlpp-dev libcurl4-openssl-dev libcrypto++-dev
 #+END_SRC
 ** Build
 #+BEGIN_SRC sh

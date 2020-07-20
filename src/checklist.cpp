@@ -1,4 +1,5 @@
 #include "checklist.h"
+#include "utils.h"
 
 #include <numeric>
 #include <sys/wait.h>
@@ -21,15 +22,9 @@ void Checklist::add_rule(const Rule& r) {
 
 ScoringReport Checklist::check() const {
     ScoringReport rep;
-    rep.set_title(title);
     int num_vulns = 0;
-    rep.set_max_pts(std::accumulate(
-                    rules.begin(), rules.end(), 0,
-                    [&] (int i, Rule r) {
-                    return r.pts > 0? (num_vulns++, i + r.pts) : i;
-                }));
-    rep.set_total_vulns(num_vulns);
 
+    Log() << "Running all checkers...";
     for (const auto& rule : rules)
         if (rule.satisfied())
             rep.add_item({{"id", rule.id},

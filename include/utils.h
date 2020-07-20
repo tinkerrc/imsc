@@ -26,5 +26,6 @@ class Log {
 };
 
 #define Err() Log("E: ")
+#define Notif() Log("N: ")
 
 #endif

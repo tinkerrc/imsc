@@ -6,3 +6,6 @@
 	path = include/json
 	url = https://github.com/nlohmann/json
 	shallow = true
+[submodule "include/Obfuscate"]
+	path = include/Obfuscate
+	url = https://github.com/adamyaxley/Obfuscate

@@ -2,14 +2,11 @@
 #ifndef IMSC_CONFIG_H
 #define IMSC_CONFIG_H
 
+#include "Obfuscate/obfuscate.h"
+
 #cmakedefine IMSC_VERSION "@IMSC_VERSION@"
 #cmakedefine IMSC_LOG_FILE "@IMSC_LOG_FILE@"
-#cmakedefine IMSC_LOCAL "@IMSC_LOCAL@"
-
-#ifndef IMSC_MODE_LOCAL
-#define IMSC_MODE_SERVER
+#cmakedefine IMSC_KEY "@IMSC_KEY@"
+#define IMSC_SECRET AY_OBFUSCATE(IMSC_KEY)
 #cmakedefine IMSC_URL "@IMSC_URL@"
 #endif
-
-#endif
-
