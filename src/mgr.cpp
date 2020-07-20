@@ -58,6 +58,7 @@ int ScoringManager::session(const std::string& token) {
         ScoringManager mgr(token);
         Log() << "View scoring report: " << IMSC_URL << "/session/" << token << "/report";
         Log() << "Stop scoring: " << IMSC_URL << "/session/" << token << "/stop";
+        Log() << "Restart scoring: " << IMSC_URL << "/session/" << token << "/restart";
 
         Status s;
         while(1) {
@@ -75,6 +76,7 @@ int ScoringManager::session(const std::string& token) {
                     mgr.score();
                     break;
                 case Status::Invalid:
+                    Err() << "Unrecognized status";
                     return 1;
             }
         }
@@ -111,7 +113,6 @@ Status ScoringManager::status() {
     if (stat == "Wait") return Status::Wait;
     if (stat == "Score") return Status::Score;
     if (stat == "Termination") return Status::Termination;
-    Err() << "Unrecognized status: " << stat;
     return Status::Invalid;
 }
 

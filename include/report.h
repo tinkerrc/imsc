@@ -18,8 +18,8 @@ class ScoringReport {
 
         ScoringReport() {
             data["pts"] = 0;
-            data["vulns"] = {};
-            data["penalties"] = {};
+            data["vulns"] = nlohmann::json::parse("[]");
+            data["penalties"] = nlohmann::json::parse("[]");
         }
 
         ScoringReport(const nlohmann::json& d)
