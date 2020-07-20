@@ -9,3 +9,6 @@
 [submodule "include/Obfuscate"]
 	path = include/Obfuscate
 	url = https://github.com/adamyaxley/Obfuscate
+[submodule "server"]
+	path = server
+	url = https://github.com/oakrc/imsc-server
