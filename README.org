@@ -27,7 +27,7 @@ sudo apt install -y libcurlpp-dev libcurl4-openssl-dev libcrypto++-dev
 git clone --recurse-submodules https://www.github.com/oakrc/imsc
 mkdir build
 cd build
-cmake .. -DIMSC_URL=https://imsc.example.com # **CHANGE THIS**
+cmake .. -DIMSC_KEY=MySecretPassword -DIMSC_URL=https://example.com # **CHANGE THIS**
 make && sudo make install
 #+END_SRC
 * License
