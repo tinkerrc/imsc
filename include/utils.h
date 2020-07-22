@@ -14,18 +14,32 @@ tm* get_time();
 // get formatted time
 std::string get_time_str();
 
-class Log {
-    private:
-        static std::ofstream ofs;
+class Logger {
 
     public:
-        Log(const std::string& pfx = "I: ");
-        ~Log();
-        Log& operator<<(const std::string& str);
-        Log& operator<<(int n);
+
+        enum MessageType {
+            NOTIFICATION,
+            INFO,
+            ERROR
+        };
+
+    private:
+
+        static std::ofstream ofs;
+        MessageType type;
+
+    public:
+
+        Logger(const std::string& pfx, MessageType mt);
+        ~Logger();
+        Logger& operator<<(const std::string& str);
+        Logger& operator<<(int n);
+
 };
 
-#define Err() Log("E: ")
-#define Notif() Log("N: ")
+#define Log() Logger("I: ", Logger::INFO)
+#define Err() Logger("E: ", Logger::ERROR)
+#define Notif() Logger("N: ", Logger::NOTIFICATION)
 
 #endif

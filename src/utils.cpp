@@ -27,30 +27,43 @@ string get_time_str() {
     return string(buffer);
 }
 
-Log::Log(const string& pfx) {
+Logger::Logger(const string& pfx, MessageType mt) : type(mt) {
     string msg = "[" + get_time_str() + "]  " + pfx;
-    std::cout << msg;
+    if (type != Logger::ERROR)
+        std::cout << msg;
+    else
+        std::cerr << msg;
     if (ofs.good())
         ofs << msg;
 }
 
-Log::~Log() {
-    std::cout << '\n';
+Logger::~Logger() {
+    if (type != Logger::ERROR)
+        std::cout << '\n';
+    else
+        std::cerr << '\n';
     if (ofs.good())
         ofs << '\n';
 }
 
-Log& Log::operator<<(const std::string& str) {
-    std::cout << str;
+Logger& Logger::operator<<(const std::string& str) {
+    if (type != Logger::ERROR)
+        std::cout << str;
+    else
+        std::cerr << str;
     if (ofs.good())
         ofs << str;
     return *this;
 }
 
-Log& Log::operator<<(int n) {
-    std::cout << n;
+Logger& Logger::operator<<(int n) {
+    if (type != Logger::ERROR)
+        std::cout << n;
+    else
+        std::cerr << n;
     if (ofs.good())
         ofs << n;
     return *this;
 }
-std::ofstream Log::ofs = std::ofstream(IMSC_LOG_FILE, std::ofstream::out | std::ofstream::app);
+
+std::ofstream Logger::ofs = std::ofstream(IMSC_LOG_FILE, std::ofstream::out | std::ofstream::app);
