@@ -13,3 +13,4 @@ tramp
 .projectile
 .ccls-cache
 *.pb.*
+.ccls

@@ -22,12 +22,22 @@ endif()
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
     ${CMAKE_CURRENT_SOURCE_DIR}/include/config.h @ONLY)
 
+find_package(PkgConfig REQUIRED)
+PKG_CHECK_MODULES(GTK3 REQUIRED gtk+-3.0)
+pkg_check_modules(GLib REQUIRED glib-2.0)
+
+LINK_DIRECTORIES(${GTK3_LIBRARY_DIRS})
+ADD_DEFINITIONS(${GTK3_CFLAGS_OTHER})
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/json/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${GLib_INCLUDE_DIRS})
+include_directories(${GTK3_INCLUDE_DIRS})
 
 file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 file(GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
 add_executable(imsc ${SOURCES} ${HEADERS})
 target_link_libraries(imsc curl curlpp cryptopp)
+target_link_libraries(imsc ${GTK3_LIBRARIES} ${GLib_LIBRARIES})
 target_compile_features(imsc PRIVATE cxx_std_17)

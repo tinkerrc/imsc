@@ -12,6 +12,7 @@
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
 #include <curlpp/Infos.hpp>
+#include <libnotify/notify.h>
 #include "nlohmann/json.hpp"
 
 #include "mgr.h"
@@ -20,7 +21,7 @@
 
 using std::string;
 using std::vector;
-using namespace CryptoPP; // source file so it's OK
+using namespace CryptoPP;
 using json = nlohmann::json;
 
 json GET(const string& url);
@@ -28,6 +29,9 @@ void POST(const string& url, const json& data);
 
 ScoringManager::ScoringManager(const string& tok)
 : token(tok) {
+    // initialize libnotify
+    notify_init("Scoring Engine");
+
     Log() << "Acquiring image information";
     json init_data = GET(IMSC_URL + ("/session/" + token));
 
@@ -117,8 +121,12 @@ Status ScoringManager::status() {
 }
 
 void ScoringManager::notify(const string& msg) {
+    NotifyNotification* notif = notify_notification_new("Scoring Engine", msg.c_str(), nullptr);
+    notify_notification_set_timeout(notif, 7000);
+    if (!notify_notification_show(notif, nullptr)) {
+        Err() << "Failed to push notification.";
+    }
     Notif() << msg;
-    system(("DISPLAY=:0 /usr/bin/notify-send 'Scoring Engine' '" + msg + "'").c_str());
 }
 
 // file-local functions
@@ -134,18 +142,18 @@ string encrypt(const string& plaintext) {
 
     string ciphertext;
     string key = (char*) IMSC_SECRET;
-    byte key_digest[CryptoPP::SHA256::DIGESTSIZE];
-    CryptoPP::SHA256().CalculateDigest(key_digest, (byte*) key.data(), key.size());
+    byte key_digest[SHA256::DIGESTSIZE];
+    SHA256().CalculateDigest(key_digest, (byte*) key.data(), key.size());
 
-    CryptoPP::CFB_Mode<CryptoPP::AES>::Encryption
-        encryption((byte*)key_digest, CryptoPP::SHA256::DIGESTSIZE, iv);
-    CryptoPP::StringSource encryptor(plaintext, true,
-                                     new CryptoPP::StreamTransformationFilter(encryption,
-                                                                              new CryptoPP::StringSink(ciphertext)));
+    CFB_Mode<AES>::Encryption
+        encryption((byte*)key_digest, SHA256::DIGESTSIZE, iv);
+    StringSource encryptor(plaintext, true,
+                           new StreamTransformationFilter(encryption,
+                                                          new StringSink(ciphertext)));
     string encoded;
-    CryptoPP::StringSource encoder(iv_str + ciphertext, true,
-                                   new CryptoPP::Base64Encoder(
-                                       new StringSink(encoded)));
+    StringSource encoder(iv_str + ciphertext, true,
+                         new Base64Encoder(
+                             new StringSink(encoded)));
     return encoded;
 }
 
@@ -153,23 +161,23 @@ std::string decrypt(const string& encoded) {
     string plaintext;
     string decoded = "";
 
-    CryptoPP::StringSource
-        decoder(encoded, true, new CryptoPP::Base64Decoder(new CryptoPP::StringSink(decoded)));
+    StringSource
+        decoder(encoded, true, new Base64Decoder(new StringSink(decoded)));
 
     string iv = decoded.substr(0, 16);
     string ciphertext = decoded.substr(16);
 
     string key = (char*) IMSC_SECRET;
-    byte key_digest[CryptoPP::SHA256::DIGESTSIZE];
-    CryptoPP::SHA256().CalculateDigest(key_digest, (byte*) key.data(), key.size());
+    byte key_digest[SHA256::DIGESTSIZE];
+    SHA256().CalculateDigest(key_digest, (byte*) key.data(), key.size());
 
-    CryptoPP::CFB_Mode<CryptoPP::AES>::Decryption decryption(key_digest,
-                                                             CryptoPP::SHA256::DIGESTSIZE,
-                                                             (byte*)iv.c_str());
+    CFB_Mode<AES>::Decryption decryption(key_digest,
+                                         SHA256::DIGESTSIZE,
+                                         (byte*)iv.c_str());
 
-    CryptoPP::StringSource decryptor(ciphertext, true,
-                                     new CryptoPP::StreamTransformationFilter(decryption,
-                                                                              new CryptoPP::StringSink(plaintext)));
+    StringSource decryptor(ciphertext, true,
+                           new StreamTransformationFilter(decryption,
+                                                          new StringSink(plaintext)));
     return plaintext;
 }
 

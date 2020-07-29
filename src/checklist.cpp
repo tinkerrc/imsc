@@ -22,7 +22,6 @@ void Checklist::add_rule(const Rule& r) {
 
 ScoringReport Checklist::check() const {
     ScoringReport rep;
-    int num_vulns = 0;
 
     Log() << "Running all checkers...";
     for (const auto& rule : rules)
