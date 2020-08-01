@@ -2,6 +2,7 @@
 #include <list>
 #include <sstream>
 #include <thread>
+#include <random>
 
 #include <cryptopp/aes.h>
 #include <cryptopp/modes.h>
@@ -12,7 +13,6 @@
 #include <curlpp/Easy.hpp>
 #include <curlpp/Options.hpp>
 #include <curlpp/Infos.hpp>
-#include <libnotify/notify.h>
 #include "nlohmann/json.hpp"
 
 #include "mgr.h"
@@ -29,9 +29,6 @@ void POST(const string& url, const json& data);
 
 ScoringManager::ScoringManager(const string& tok)
 : token(tok) {
-    // initialize libnotify
-    notify_init("Scoring Engine");
-
     Log() << "Acquiring image information";
     json init_data = GET(IMSC_URL + ("/session/" + token));
 
@@ -58,11 +55,17 @@ ScoringManager::ScoringManager(const string& tok)
 }
 
 int ScoringManager::session(const std::string& token) {
+    setenv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin", 1);
     try {
         ScoringManager mgr(token);
+
         Log() << "View scoring report: " << IMSC_URL << "/session/" << token << "/report";
         Log() << "Stop scoring: " << IMSC_URL << "/session/" << token << "/stop";
         Log() << "Restart scoring: " << IMSC_URL << "/session/" << token << "/restart";
+
+        std::random_device rd; // obtain a random number from hardware
+        std::mt19937 gen(rd()); // seed the generator
+        std::normal_distribution<> distr(10, 30); // define the range
 
         Status s;
         while(1) {
@@ -73,7 +76,7 @@ int ScoringManager::session(const std::string& token) {
                     return 0;
                 case Status::Wait:
                     Log() << "Sleeping...";
-                    std::this_thread::sleep_for(std::chrono::seconds(15));
+                    std::this_thread::sleep_for(std::chrono::seconds(int(distr(gen))));
                     break;
                 case Status::Score:
                     Log() << "Scoring...";
@@ -121,11 +124,9 @@ Status ScoringManager::status() {
 }
 
 void ScoringManager::notify(const string& msg) {
-    NotifyNotification* notif = notify_notification_new("Scoring Engine", msg.c_str(), nullptr);
-    notify_notification_set_timeout(notif, 7000);
-    if (!notify_notification_show(notif, nullptr)) {
-        Err() << "Failed to push notification.";
-    }
+    // Assuming the user has UID 1000
+    system(("sudo -u $(id -nu 1000) DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus "
+            "notify-send 'Scoring Engine' '" + msg + "'").c_str());
     Notif() << msg;
 }
 

@@ -34,7 +34,6 @@ class ScoringManager {
         std::string start_time = "";
         std::string image_name = "";
         int duration = 0; // minutes
-        int warn_mins = 15;
 
         static void notify(const std::string& msg);
         void score();
