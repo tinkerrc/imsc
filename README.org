@@ -22,6 +22,7 @@ sudo pacman -S cmake crypto++ libnotify
 sudo apt update
 sudo apt install -y cmake libcurlpp-dev libcurl4-openssl-dev libcrypto++-dev libnotify-dev
 #+END_SRC
+Note that for older versions of Ubuntu like Ubuntu 14 & 16, you need to obtain newer versions of cmake and gcc/g++ to enable C++17. You might also need to build & install a newer version of libcurlpp from source if you encounter build errors (don't forget to remove the ~libcurlpp-dev~ package first).
 ** Build
 #+BEGIN_SRC sh
 git clone --recurse-submodules https://www.github.com/oakrc/imsc
