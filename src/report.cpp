@@ -22,16 +22,14 @@ int ScoringReport::vulns_pts() const {
     return pts;
 }
 
-// NOTE: prefers reporting loss than gain
 bool ScoringReport::lost_since(const ScoringReport& last) const {
-    // basic method
     return penal_pts() < last.penal_pts()
         || vulns_pts() < last.vulns_pts();
 }
 
 bool ScoringReport::gained_since(const ScoringReport& last) const {
     return penal_pts() >= last.penal_pts()
-        && vulns_pts() >= last.vulns_pts();
+        && vulns_pts() > last.vulns_pts();
 }
 
 void ScoringReport::add_item(const json& itm) {

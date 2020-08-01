@@ -2,7 +2,6 @@
 #include <list>
 #include <sstream>
 #include <thread>
-#include <random>
 
 #include <cryptopp/aes.h>
 #include <cryptopp/modes.h>
@@ -63,12 +62,9 @@ int ScoringManager::session(const std::string& token) {
         Log() << "Stop scoring: " << IMSC_URL << "/session/" << token << "/stop";
         Log() << "Restart scoring: " << IMSC_URL << "/session/" << token << "/restart";
 
-        std::random_device rd; // obtain a random number from hardware
-        std::mt19937 gen(rd()); // seed the generator
-        std::normal_distribution<> distr(10, 30); // define the range
-
         Status s;
         while(1) {
+            std::this_thread::sleep_for(std::chrono::seconds(20));
             s = mgr.status();
             switch (s) {
                 case Status::Termination:
@@ -76,7 +72,7 @@ int ScoringManager::session(const std::string& token) {
                     return 0;
                 case Status::Wait:
                     Log() << "Sleeping...";
-                    std::this_thread::sleep_for(std::chrono::seconds(int(distr(gen))));
+                    std::this_thread::sleep_for(std::chrono::seconds(30));
                     break;
                 case Status::Score:
                     Log() << "Scoring...";
@@ -99,6 +95,7 @@ void ScoringManager::score() {
     try {
         ScoringReport report = checklist.check();
         Log() << "Current score: " << report.pts();
+        std::this_thread::sleep_for(std::chrono::seconds(20));
         Log() << "Uploading scoring report";
         POST(IMSC_URL + string("/session/") + token + "/report", report);
         Log() << "Done";

@@ -14,8 +14,8 @@ using std::vector;
 using std::cout;
 
 int main(int argc, char *argv[]) {
-    if (geteuid() != 0) {
-        Err() << "imsc needs root privileges to score";
+    if (getuid() != 0) {
+        Err() << "You must run imsc as root";
         return 1;
     }
 
